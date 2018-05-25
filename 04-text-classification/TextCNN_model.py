@@ -57,6 +57,7 @@ class TextCNN_model(nn.Module):
 
     def forward(self, x):
         x = self.embed(x)
+        # 3个卷积，卷积核不同
         x1 = self.conv1(x)
         x2 = self.conv2(x)
         x3 = self.conv3(x)
