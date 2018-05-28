@@ -17,7 +17,10 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import os
 import data_preprocess
-
+import torch.nn.functional as F
+# from torchviz import make_dot, make_dot_from_trace
+from visualize import make_dot
+from tensorboardX import SummaryWriter
 
 X_train, X_test, Y_train, Y_test = data_preprocess.tensorFromData()
 trainDataSet = data_preprocess.TextDataSet(X_train, Y_train)
@@ -78,12 +81,89 @@ class TextCNN_model(nn.Module):
 
 model=TextCNN_model(len_dic,emb_dim,input_dim)
 print model
-for i,data in enumerate(trainDataLoader):
-    x,y=data
 
-    print x,x.size()
-    print x[1],x[1].size()
-    # z= model.embed(x)
-    print y
-    # print z.size()
+
+
+for i,data in enumerate(trainDataLoader):
+    x,_=data
+    # y = model(x)
+    # v = make_dot(y, params=dict(model.named_parameters()))
+    # v.view()
+
+    # dummy_input =x
+    # with SummaryWriter(comment='LeNet') as w:
+    #     w.add_graph(model, (dummy_input,))
+
+    # break
+
+
+
+class CNN_model(nn.Module):
+    def __init__(self, len_dic,input_dim,emb_dim):
+        super(CNN_model, self).__init__()
+        self.embed = nn.Embedding(len_dic, emb_dim)  # b,64,128
+        self.conv1 = nn.Sequential(
+            nn.Conv1d(input_dim, 256, kernel_size=3, padding=1),  # b,256,128
+            nn.MaxPool1d(2, 2),  # b,256,64
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv1d(256, 128, kernel_size=3, padding=1),  # b,128,64
+            nn.MaxPool1d(2, 2),  # b,128,32
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(128, 64, kernel_size=3, padding=1),  # b,64,32
+            nn.MaxPool1d(2, 2),  # b,64,16
+        )
+        self.bn=nn.BatchNorm1d(64)#b,64,16  -> #b,64*16
+        self.drop = nn.Dropout(0.1)
+        self.linear = nn.Linear(64 * 16, 256)#b,256
+        self.relu = nn.ReLU(True)#b,256
+        self.classify = nn.Linear(256, 3)#b,3
+
+    def forward(self, x):
+        x = self.embed(x)
+        # print(x.size())
+        # x = x.permute(0, 2, 1)  # 将通道放到第二位
+        x = self.conv1(x)
+        # print(x.size())
+        x = self.conv2(x)
+        # print(x.size())
+        x = self.conv3(x)
+        x = self.bn(x)
+        b, c, l = x.size()
+        x = x.view(b, c * l)
+        x = self.drop(x)
+        # print(x.size())
+        x = self.linear(x)
+        x = self.relu(x)
+        x=x.view(-1,256)
+        out = self.classify(x)
+        out = F.log_softmax(out)
+        return out
+
+
+model = CNN_model(len_dic,input_dim,emb_dim)
+print(model)
+
+for i,data in enumerate(trainDataLoader):
+    x,_=data
+    y = model(x)
+    # g = make_dot(y)
+
+    v = make_dot(y, params=dict(model.named_parameters()))
+    v.view()
+#
+#     # params = list(model.parameters())
+#     # k = 0
+#     # for i in params:
+#     #     l = 1
+#     #     print("该层的结构：" + str(list(i.size())))
+#     #     for j in i.size():
+#     #         l *= j
+#     #     print("该层参数和：" + str(l))
+#     #     k = k + l
+#     # print("总参数数量和：" + str(k))
+#     dummy_input =x
+#     with SummaryWriter(comment='LeNet') as w:
+#         w.add_graph(model, (dummy_input,))
     break
