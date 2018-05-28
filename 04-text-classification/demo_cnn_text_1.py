@@ -18,9 +18,9 @@ from torch.utils.data import DataLoader
 import os
 import data_preprocess
 import torch.nn.functional as F
-# from torchviz import make_dot, make_dot_from_trace
-from visualize import make_dot
-from tensorboardX import SummaryWriter
+from torchviz import make_dot, make_dot_from_trace
+# from visualize import make_dot
+# from tensorboardX import SummaryWriter
 
 X_train, X_test, Y_train, Y_test = data_preprocess.tensorFromData()
 trainDataSet = data_preprocess.TextDataSet(X_train, Y_train)
@@ -84,8 +84,8 @@ print model
 
 
 
-for i,data in enumerate(trainDataLoader):
-    x,_=data
+# for i,data in enumerate(trainDataLoader):
+#     x,_=data
     # y = model(x)
     # v = make_dot(y, params=dict(model.named_parameters()))
     # v.view()
@@ -145,13 +145,20 @@ class CNN_model(nn.Module):
 model = CNN_model(len_dic,input_dim,emb_dim)
 print(model)
 
-for i,data in enumerate(trainDataLoader):
-    x,_=data
-    y = model(x)
-    # g = make_dot(y)
-
-    v = make_dot(y, params=dict(model.named_parameters()))
-    v.view()
+# for i,data in enumerate(trainDataLoader):
+#     x,_=data
+#     print(x,x.size())
+#     print(x[0],x[0].size())
+#     y = model(x)
+#     model.eval()
+#     # print y
+#     _, pre = torch.max(y, 1)
+#     print _
+#     print pre
+#     # g = make_dot(y)
+#
+#     v = make_dot(y, params=dict(model.named_parameters()))
+#     v.view()
 #
 #     # params = list(model.parameters())
 #     # k = 0
@@ -166,4 +173,40 @@ for i,data in enumerate(trainDataLoader):
 #     dummy_input =x
 #     with SummaryWriter(comment='LeNet') as w:
 #         w.add_graph(model, (dummy_input,))
+#     break
+
+
+class CNN_GRU_model(nn.Module):
+    def __init__(self, len_dic, emb_dim, input_dim):
+        super(CNN_GRU_model, self).__init__()
+        self.embed = nn.Embedding(len_dic, emb_dim)  # b,64,128
+        self.conv = nn.Sequential(
+            nn.Conv1d(input_dim, 256, 3, 1, 1),  # b,256,128
+            nn.ReLU(True),
+            nn.MaxPool1d(2, 2)  # b,256,64 -> 256,b,64
+        )
+        self.gru1 = nn.GRU(input_size=64, hidden_size=256, dropout=0.2) # 256,b,256 input of shape (seq_len, batch, input_size):
+        self.gru2 = nn.GRU(input_size=256, hidden_size=256, dropout=0.2)  # 256,b,256 -> b,256
+        self.classify = nn.Linear(256, 3)  # b,3
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.conv(x)
+        x = x.permute(1, 0, 2) #https://pytorch.org/docs/master/tensors.html?highlight=permute#torch.Tensor.permute
+        out, _ = self.gru1(x)
+        out,_=self.gru2(out)
+        out = out[-1, :, :]
+        # print(out.size())
+        out = self.classify(out)
+        # print(out.size())
+        return out
+
+
+model = CNN_GRU_model(len_dic, emb_dim, input_dim)
+print(model)
+for i,data in enumerate(trainDataLoader):
+    x,_=data
+    y = model(x)
+    v = make_dot(y, params=dict(model.named_parameters()))
+    v.view()
     break

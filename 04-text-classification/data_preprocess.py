@@ -67,8 +67,13 @@ def get_data():
     mid_data = open('./data/mid_cut_jieba.txt')
     mid_data = [clean(line).replace('\n', '') for line in mid_data]
     mid_data_label = [2 for i in range(len(mid_data))]
-    data=good_data+bad_data+mid_data
-    data_label=good_data_label+bad_data_label+mid_data_label
+
+    # data=good_data+bad_data+mid_data
+    # data_label=good_data_label+bad_data_label+mid_data_label
+
+    data = good_data + bad_data
+    data_label = good_data_label + bad_data_label
+
     # print(data[0:5])
     # print(data_label[0:5])
     vocab=[word for s in data for word in s.split()]

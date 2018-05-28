@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import torch
 from torch import nn, optim
 from torch.autograd import Variable
@@ -10,8 +12,8 @@ use_cuda = torch.cuda.is_available()
 
 # 将数据划分为训练集和测试集
 X_train, X_test, Y_train, Y_test = data_preprocess.tensorFromData()
-trainDataSet = data_preprocess.TextDataSet(X_train, Y_train)
-testDataSet = data_preprocess.TextDataSet(X_test, Y_test)
+trainDataSet = Data.TensorDataset(X_train, Y_train)
+testDataSet = Data.TensorDataset(X_test, Y_test)
 trainDataLoader = DataLoader(trainDataSet, batch_size=16, shuffle=True)
 testDataLoader = DataLoader(testDataSet, batch_size=16, shuffle=False)
 
@@ -37,14 +39,14 @@ class CNN_GRU_model(nn.Module):
             nn.ReLU(True),
             nn.MaxPool1d(2, 2)  # b,256,64 -> 256,b,64
         )
-        self.gru1 = nn.GRU(input_size=64, hidden_size=256, dropout=0.2) # 256,b,256
+        self.gru1 = nn.GRU(input_size=64, hidden_size=256, dropout=0.2) # 256,b,256 input of shape (seq_len, batch, input_size):
         self.gru2 = nn.GRU(input_size=256, hidden_size=256, dropout=0.2)  # 256,b,256 -> b,256
         self.classify = nn.Linear(256, 3)  # b,3
 
     def forward(self, x):
         x = self.embed(x)
         x = self.conv(x)
-        x = x.permute(1, 0, 2)
+        x = x.permute(1, 0, 2) #https://pytorch.org/docs/master/tensors.html?highlight=permute#torch.Tensor.permute
         out, _ = self.gru1(x)
         out,_=self.gru2(out)
         out = out[-1, :, :]
@@ -61,11 +63,11 @@ else:
 
 criterion = nn.CrossEntropyLoss()
 optimzier = optim.Adam(model.parameters(), lr=1e-3)
-best_acc = 0
+best_acc = 0.0
 best_model = None
 for epoch in range(num_epoches):
-    train_loss = 0
-    train_acc = 0
+    train_loss = 0.0
+    train_acc = 0.0
     model.train()
     for i, data in enumerate(trainDataLoader):
         x, y = data
@@ -76,10 +78,10 @@ for epoch in range(num_epoches):
         # forward
         out = model(x)
         loss = criterion(out, y)
-        train_loss += loss.data[0] * len(y)
+        train_loss += loss.item() * len(y)
         _, pre = torch.max(out, 1)
-        num_acc = (pre == y).sum()
-        train_acc += num_acc.data[0]
+        num_acc = sum(pre == y)
+        train_acc += num_acc.item()
         # backward
         optimzier.zero_grad()
         loss.backward()
@@ -93,22 +95,20 @@ for epoch in range(num_epoches):
                                                                      train_loss / (len(trainDataLoader) * batch_size),
                                                                      train_acc / (len(trainDataLoader) * batch_size)))
     model.eval()
-    eval_loss = 0
-    eval_acc = 0
+    eval_loss = 0.0
+    eval_acc = 0.0
     for i, data in enumerate(testDataLoader):
         x, y = data
         if use_cuda:
-            x = Variable(x, volatile=True).cuda()
-            y = Variable(y, volatile=True).cuda()
+            x, y = Variable(x).cuda(), Variable(y).cuda()
         else:
-            x = Variable(x, volatile=True)
-            y = Variable(y, volatile=True)
+            x, y = Variable(x), Variable(y)
         out = model(x)
         loss = criterion(out, y)
-        eval_loss += loss.data[0] * len(y)
+        eval_loss += loss.item() * len(y)
         _, pre = torch.max(out, 1)
-        num_acc = (pre == y).sum()
-        eval_acc += num_acc.data[0]
+        num_acc = sum(pre == y)
+        eval_acc += num_acc.item()
     print('test loss is:{:.6f},test acc is:{:.6f}'.format(
         eval_loss / (len(testDataLoader) * batch_size),
         eval_acc / (len(testDataLoader) * batch_size)))
