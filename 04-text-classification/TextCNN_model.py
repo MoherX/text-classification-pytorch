@@ -7,14 +7,17 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 import data_preprocess
 import os
+import torch.utils.data as Data
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 use_cuda = torch.cuda.is_available()
 
 # 将数据划分为训练集和测试集
 X_train, X_test, Y_train, Y_test = data_preprocess.tensorFromData()
-trainDataSet = data_preprocess.TextDataSet(X_train, Y_train)
-testDataSet = data_preprocess.TextDataSet(X_test, Y_test)
+# trainDataSet = data_preprocess.TextDataSet(X_train, Y_train)
+# testDataSet = data_preprocess.TextDataSet(X_test, Y_test)
+trainDataSet = Data.TensorDataset(X_train, Y_train)
+testDataSet = Data.TensorDataset(X_test, Y_test)
 trainDataLoader = DataLoader(trainDataSet, batch_size=16, shuffle=True)
 testDataLoader = DataLoader(testDataSet, batch_size=16, shuffle=False)
 
