@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import numpy as np
 import re
 import torch
@@ -36,14 +38,33 @@ def clean(sent):
 word_to_inx={'pad':0}
 inx_to_word={0:'pad'}
 #获取数据，并转换为id
+#
+def read_file(path_in):
+    """
+
+    :param path_in:
+    :return:
+    """
+    tmp=[]
+    with open(path_in) as f:
+        for line in f:
+            tmp.append(line.strip().decode('utf-8'))
+    return tmp
+
+
 def get_data():
-    good_data=open('./data/good_cut_jieba.txt','r',encoding='utf-8').readlines()
+
+
+    # good_data=open('./data/good_cut_jieba.txt','r',encoding='utf-8').readlines()
+    good_data=read_file('./data/good_cut_jieba.txt')
     good_data=[clean(line).replace('\n','')  for line in good_data]
     good_data_label=[0 for i in range(len(good_data))]
-    bad_data = open('./data/bad_cut_jieba.txt', 'r', encoding='utf-8').readlines()
+    # bad_data = open('./data/bad_cut_jieba.txt', 'r', encoding='utf-8').readlines()
+    bad_data=read_file('./data/bad_cut_jieba.txt')
     bad_data = [clean(line).replace('\n', '') for line in bad_data]
     bad_data_label = [1 for i in range(len(bad_data))]
-    mid_data = open('./data/mid_cut_jieba.txt', 'r', encoding='utf-8').readlines()
+    # mid_data = open('./data/mid_cut_jieba.txt', 'r', encoding='utf-8').readlines()
+    mid_data = open('./data/mid_cut_jieba.txt')
     mid_data = [clean(line).replace('\n', '') for line in mid_data]
     mid_data_label = [2 for i in range(len(mid_data))]
     data=good_data+bad_data+mid_data
